@@ -37,7 +37,7 @@ func showStaticLayout() {
 	for _, line := range logo {
 		fmt.Println(cyanColor + line + resetColor)
 	}
-	fmt.Println("\n🤖 Selamat Datang di Boot Rams (BCA CLI Bot) 🤖")
+	fmt.Println("\n🤖 Selamat Datang di Boot Rams (BCA CLI Bot) v1.0.0 🤖")
 	fmt.Println("\n📌 MENU UTAMA:")
 	fmt.Println("👉 [1] /run       - Jalankan Bot Mutasi Rekening")
 	fmt.Println("👉 [2] /setting    - Atur kredensial login (.env)")
@@ -72,7 +72,7 @@ func playIntroBlinkAnimation() {
 	for _, line := range logoOpen {
 		fmt.Println(cyanColor + line + resetColor)
 	}
-	fmt.Println("\n🤖 Selamat Datang di Boot Rams (BCA CLI Bot) 🤖")
+	fmt.Println("\n🤖 Selamat Datang di Boot Rams (BCA CLI Bot) v1.0.0 🤖")
 	fmt.Println("\n📌 MENU UTAMA:")
 	fmt.Println("👉 [1] /run       - Jalankan Bot Mutasi Rekening")
 	fmt.Println("👉 [2] /setting    - Atur kredensial login (.env)")
