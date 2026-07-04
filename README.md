@@ -23,58 +23,67 @@ Sebelum menginstal, pastikan sistem Anda sudah terpasang:
 
 ---
 
-## ⚙️ Cara Instalasi & Penggunaan
+## ⚙️ 1. Cara Instalasi (Installation Guide)
 
-### 1. Kloning Repositori
+Ikuti langkah-langkah berikut secara berurutan untuk memasang bot di komputer Anda:
+
+### Langkah 1.1: Kloning Repositori
+Unduh kode sumber proyek dari repositori GitHub Anda:
 ```bash
 git clone https://github.com/sidomulyoadvertisingdev/bca-cli-bot.git
 cd bca-cli-bot
 ```
 
-### 2. Konfigurasi File Lingkungan (.env)
-Salin berkas contoh konfigurasi ke berkas `.env` aktif:
+### Langkah 1.2: Konfigurasi Kredensial (.env)
+Salin berkas template contoh konfigurasi ke berkas `.env` aktif:
 ```bash
 cp .env.example .env
 ```
-Buka file `.env` yang baru dibuat dan isi kredensial akun KlikBCA Anda:
+Buka berkas `.env` yang baru dibuat menggunakan editor teks pilihan Anda, lalu isi kredensial akun KlikBCA Anda:
 ```env
-BCA_USER=USER_ID_ANDA
+BCA_USER=USER_ID_KLIKBCA_ANDA
 BCA_PASS=PIN_PASSWORD_ANDA
 ```
-*(Catatan: File `.env` sudah masuk dalam `.gitignore` sehingga aman dan tidak akan pernah terunggah ke GitHub).*
+*(Catatan: Berkas `.env` telah didaftarkan dalam `.gitignore` sehingga tidak akan pernah terunggah ke repositori publik/pribadi di GitHub demi menjaga keamanan akun Anda).*
 
-### 3. Menjalankan Aplikasi
-Untuk menjalankan bot langsung via Go:
-```bash
-go run .
-```
-Atau menggunakan berkas shell pembantu:
-```bash
-./run.sh
-```
-
----
-
-## 🌍 Pemasangan Perintah Global `rams`
-Agar aplikasi bisa dibuka dari direktori mana saja di terminal Anda (layaknya aplikasi CLI profesional):
-
-1. **Bangun Binary & Pasang Symlink**:
+### Langkah 1.3: Pemasangan Perintah Global `rams` (Opsional - Direkomendasikan)
+Agar aplikasi dapat dibuka dari folder mana saja di terminal Anda (seperti aplikasi CLI sistem):
+1. **Kompilasi Biner & Pasang Tautan (Symlink)**:
    ```bash
    go build -o rams .
    mkdir -p ~/.local/bin
    ln -sf $(pwd)/rams ~/.local/bin/rams
    ```
-2. **Pastikan `~/.local/bin` terdaftar di PATH Anda**:
-   Buka berkas konfigurasi terminal Anda (seperti `~/.zshrc` atau `~/.bash_profile`), lalu tambahkan baris berikut jika belum ada:
+2. **Daftarkan ke PATH Terminal**:
+   Buka berkas profil terminal Anda (seperti `~/.zshrc` untuk pengguna Zsh default macOS, atau `~/.bash_profile` untuk Bash), lalu tambahkan baris berikut di baris paling bawah:
    ```bash
    export PATH="$HOME/.local/bin:$PATH"
    ```
-   Terapkan perubahan dengan menjalankan `source ~/.zshrc` atau buka jendela terminal baru.
+   Terapkan perubahan dengan mengetik perintah `source ~/.zshrc` atau buka jendela terminal baru.
 
-3. **Jalankan Aplikasi dari Direktori Mana Saja**:
-   ```bash
-   rams
-   ```
+---
+
+## 🚀 2. Cara Menjalankan Aplikasi (Execution Guide)
+
+Setelah proses instalasi dan konfigurasi di atas selesai, Anda dapat menjalankan aplikasi dengan salah satu cara di bawah ini:
+
+### Metode 2.1: Menjalankan Secara Global (Sangat Direkomendasikan)
+Jika Anda telah menyelesaikan **Langkah 1.3**, Anda cukup membuka terminal baru di direktori mana saja dan langsung mengetik:
+```bash
+rams
+```
+Aplikasi dashboard CLI **Boot Rams** akan langsung terbuka dan siap digunakan.
+
+### Metode 2.2: Menjalankan Secara Lokal (Folder Proyek)
+Jika Anda tidak memasang perintah global, Anda harus masuk ke dalam direktori proyek terlebih dahulu, kemudian jalankan dengan salah satu opsi berikut:
+- **Menggunakan Go run**:
+  ```bash
+  go run .
+  ```
+- **Menggunakan berkas shell script pembantu**:
+  ```bash
+  ./run.sh
+  ```
 
 ---
 
