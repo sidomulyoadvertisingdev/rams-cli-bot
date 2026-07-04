@@ -25,19 +25,32 @@ func getEnvFilePath() string {
 
 func showStaticLayout() {
 	logo := []string{
-		"        ▲   ▲        ",
-		"      ┌───────┐      ",
-		"      │ █   █ │      ",
-		"      │   ▄   │      ",
-		"      │ ▀▀▀▀▀ │      ",
-		"      └───────┘      ",
+		"╭─USER@SYSTEM:~─────────────────────────────────────────────────────────────────────────────╮",
+		"│             _                                                                             │",
+		"│            (○)                                                                            │",
+		"│             │                                                                             │",
+		"│         .───┴───.       ____     _     __  __ ____    ____   ___ _____                    │",
+		"│       .-'       '-.    |  _ \\   / \\   |  \\/  | ___|  | __ ) / _ \\_   _|                   │",
+		"│      /   .-----.   \\   | |_) | / _ \\  | |\\/| \\___ \\  |  _ \\| | | || |                     │",
+		"│     /   /  o o  \\   \\  |  _ < / ___ \\ | |  | |___) | | |_) | |_| || |                     │",
+		"│    |   |   \\ = /   |   | |_| \\_/_/   \\_\\_|  |_|____/  |____/ \\___/  |_|                     │",
+		"│    |---|    '-'    |---|                                                                  │",
+		"│    |   |           |   | ───────────────────────────────────────────────────────────────  │",
+		"│     \\   \\         /   /  > AI ASSISTANT • SMART • FAST • RELIABLE                         │",
+		"│      '-._'-----'_.-'   .──────────────────────────────────────────────────────────.       │",
+		"│        /         \\     │ > [★] INTELLIGENT RESPONSE │ SYSTEM STATUS: ONLINE       │       │",
+		"│       /  .-----.  \\    │ > [⚡] HIGH PERFORMANCE    │ VERSION      : 1.0.0        │       │",
+		"│      /  /   AI  \\  \\   │ > [🔒] SECURE & PRIVATE    │ UPTIME       : 24/7         │       │",
+		"│     |  |   [=]   |  |  │ > [✦] ALWAYS ONLINE        │ MODE         : ACTIVE       │       │",
+		"│     |  |         |  |  '──────────────────────────────────────────────────────────'       │",
+		"│                        > RAMS BOT READY TO ASSIST YOU... █                                │",
+		"╰───────────────────────────────────────────────────────────────────────────────────────────╯",
 	}
 	cyanColor := "\033[36m"
 	resetColor := "\033[0m"
 	for _, line := range logo {
 		fmt.Println(cyanColor + line + resetColor)
 	}
-	fmt.Println("\n🤖 Selamat Datang di Boot Rams (BCA CLI Bot) v1.0.0 🤖")
 	fmt.Println("\n📌 MENU UTAMA:")
 	fmt.Println("👉 [1] /run       - Jalankan Bot Mutasi Rekening")
 	fmt.Println("👉 [2] /setting    - Atur kredensial login (.env)")
@@ -47,22 +60,30 @@ func showStaticLayout() {
 
 func playIntroBlinkAnimation() {
 	logoOpen := []string{
-		"        ▲   ▲        ",
-		"      ┌───────┐      ",
-		"      │ █   █ │      ",
-		"      │   ▄   │      ",
-		"      │ ▀▀▀▀▀ │      ",
-		"      └───────┘      ",
+		"╭─USER@SYSTEM:~─────────────────────────────────────────────────────────────────────────────╮",
+		"│             _                                                                             │",
+		"│            (○)                                                                            │",
+		"│             │                                                                             │",
+		"│         .───┴───.       ____     _     __  __ ____    ____   ___ _____                    │",
+		"│       .-'       '-.    |  _ \\   / \\   |  \\/  | ___|  | __ ) / _ \\_   _|                   │",
+		"│      /   .-----.   \\   | |_) | / _ \\  | |\\/| \\___ \\  |  _ \\| | | || |                     │",
+		"│     /   /  o o  \\   \\  |  _ < / ___ \\ | |  | |___) | | |_) | |_| || |                     │",
+		"│    |   |   \\ = /   |   | |_| \\_/_/   \\_\\_|  |_|____/  |____/ \\___/  |_|                     │",
+		"│    |---|    '-'    |---|                                                                  │",
+		"│    |   |           |   | ───────────────────────────────────────────────────────────────  │",
+		"│     \\   \\         /   /  > AI ASSISTANT • SMART • FAST • RELIABLE                         │",
+		"│      '-._'-----'_.-'   .──────────────────────────────────────────────────────────.       │",
+		"│        /         \\     │ > [★] INTELLIGENT RESPONSE │ SYSTEM STATUS: ONLINE       │       │",
+		"│       /  .-----.  \\    │ > [⚡] HIGH PERFORMANCE    │ VERSION      : 1.0.0        │       │",
+		"│      /  /   AI  \\  \\   │ > [🔒] SECURE & PRIVATE    │ UPTIME       : 24/7         │       │",
+		"│     |  |   [=]   |  |  │ > [✦] ALWAYS ONLINE        │ MODE         : ACTIVE       │       │",
+		"│     |  |         |  |  '──────────────────────────────────────────────────────────'       │",
+		"│                        > RAMS BOT READY TO ASSIST YOU... █                                │",
+		"╰───────────────────────────────────────────────────────────────────────────────────────────╯",
 	}
 
-	logoClosed := []string{
-		"        ▲   ▲        ",
-		"      ┌───────┐      ",
-		"      │ ▄   ▄ │      ",
-		"      │   ▄   │      ",
-		"      │ ▀▀▀▀▀ │      ",
-		"      └───────┘      ",
-	}
+	eyeOpenLine := "│     /   /  o o  \\   \\  |  _ < / ___ \\ | |  | |___) | | |_) | |_| || |                     │"
+	eyeClosedLine := "│     /   /  - -  \\   \\  |  _ < / ___ \\ | |  | |___) | | |_) | |_| || |                     │"
 
 	cyanColor := "\033[36m"
 	resetColor := "\033[0m"
@@ -72,7 +93,6 @@ func playIntroBlinkAnimation() {
 	for _, line := range logoOpen {
 		fmt.Println(cyanColor + line + resetColor)
 	}
-	fmt.Println("\n🤖 Selamat Datang di Boot Rams (BCA CLI Bot) v1.0.0 🤖")
 	fmt.Println("\n📌 MENU UTAMA:")
 	fmt.Println("👉 [1] /run       - Jalankan Bot Mutasi Rekening")
 	fmt.Println("👉 [2] /setting    - Atur kredensial login (.env)")
@@ -81,37 +101,29 @@ func playIntroBlinkAnimation() {
 	
 	// Kedip pertama (tutup mata sebentar lalu buka)
 	time.Sleep(400 * time.Millisecond)
-	fmt.Print("\033[15A\r") // Naik ke logo
-	for _, line := range logoClosed {
-		fmt.Print("\033[K")
-		fmt.Println(cyanColor + line + resetColor)
-	}
-	fmt.Print("\033[9B\r") // Turun ke bawah menu
+	fmt.Print("\033[18A\r") // Naik ke baris mata
+	fmt.Print("\033[K")
+	fmt.Println(cyanColor + eyeClosedLine + resetColor)
+	fmt.Print("\033[17B\r") // Turun kembali
 	
 	time.Sleep(150 * time.Millisecond)
-	fmt.Print("\033[15A\r")
-	for _, line := range logoOpen {
-		fmt.Print("\033[K")
-		fmt.Println(cyanColor + line + resetColor)
-	}
-	fmt.Print("\033[9B\r")
+	fmt.Print("\033[18A\r")
+	fmt.Print("\033[K")
+	fmt.Println(cyanColor + eyeOpenLine + resetColor)
+	fmt.Print("\033[17B\r")
 
 	// Kedip kedua cepat
 	time.Sleep(200 * time.Millisecond)
-	fmt.Print("\033[15A\r")
-	for _, line := range logoClosed {
-		fmt.Print("\033[K")
-		fmt.Println(cyanColor + line + resetColor)
-	}
-	fmt.Print("\033[9B\r")
+	fmt.Print("\033[18A\r")
+	fmt.Print("\033[K")
+	fmt.Println(cyanColor + eyeClosedLine + resetColor)
+	fmt.Print("\033[17B\r")
 
 	time.Sleep(150 * time.Millisecond)
-	fmt.Print("\033[15A\r")
-	for _, line := range logoOpen {
-		fmt.Print("\033[K")
-		fmt.Println(cyanColor + line + resetColor)
-	}
-	fmt.Print("\033[9B\r")
+	fmt.Print("\033[18A\r")
+	fmt.Print("\033[K")
+	fmt.Println(cyanColor + eyeOpenLine + resetColor)
+	fmt.Print("\033[17B\r")
 }
 
 func clearScreen() {
