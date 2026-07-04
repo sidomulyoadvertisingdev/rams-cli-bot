@@ -2,7 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -137,6 +141,12 @@ func main() {
 	loadEnvFile()
 
 	scanner := bufio.NewScanner(os.Stdin)
+
+	// Tampilkan layout pembuka lalu verifikasi autentikasi ERP
+	clearScreen()
+	showStaticLayout()
+	authenticateERP(scanner)
+
 	for {
 		// Jalankan kedipan saat masuk menu utama, setelah selesai baru minta input
 		playIntroBlinkAnimation()
@@ -191,10 +201,7 @@ func loadEnvFile() {
 }
 
 func loadEnvMap() map[string]string {
-	config := map[string]string{
-		"BCA_USER": "",
-		"BCA_PASS": "",
-	}
+	config := make(map[string]string)
 	envPath := getEnvFilePath()
 	file, err := os.Open(envPath)
 	if err != nil {
@@ -213,17 +220,139 @@ func loadEnvMap() map[string]string {
 			key := strings.TrimSpace(parts[0])
 			val := strings.TrimSpace(parts[1])
 			val = strings.Trim(val, `"'`)
-			if key == "BCA_USER" || key == "BCA_PASS" {
-				config[key] = val
-			}
+			config[key] = val
 		}
 	}
 	return config
 }
 
-func saveEnv(user, pass string) error {
-	content := fmt.Sprintf("BCA_USER=%s\nBCA_PASS=%s\n", user, pass)
+func saveEnvMap(config map[string]string) error {
+	var lines []string
+	for k, v := range config {
+		lines = append(lines, fmt.Sprintf("%s=%s", k, v))
+	}
+	content := strings.Join(lines, "\n") + "\n"
 	return os.WriteFile(getEnvFilePath(), []byte(content), 0644)
+}
+
+type LoginResponse struct {
+	Success     bool   `json:"success"`
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+	Message     string `json:"message"`
+}
+
+func loginToERP(apiURL, email, password string) (*LoginResponse, error) {
+	url := fmt.Sprintf("%s/auth/login", strings.TrimSuffix(apiURL, "/"))
+	payload := map[string]string{
+		"email":    email,
+		"password": password,
+	}
+	jsonPayload, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	client := &http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var loginResp LoginResponse
+	err = json.Unmarshal(body, &loginResp)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse response: %s", string(body))
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		if loginResp.Message != "" {
+			return nil, fmt.Errorf(loginResp.Message)
+		}
+		return nil, fmt.Errorf("HTTP status %d", resp.StatusCode)
+	}
+
+	return &loginResp, nil
+}
+
+func authenticateERP(scanner *bufio.Scanner) {
+	apiURL := os.Getenv("ERP_API_URL")
+	if apiURL == "" {
+		apiURL = "http://erp.sidomulyo.tes/api"
+		os.Setenv("ERP_API_URL", apiURL)
+	}
+
+	email := os.Getenv("ERP_EMAIL")
+	password := os.Getenv("ERP_PASS")
+
+	if email != "" && password != "" {
+		fmt.Printf("🔄 Menghubungkan ke ERP (%s) sebagai %s...\n", apiURL, email)
+		resp, err := loginToERP(apiURL, email, password)
+		if err == nil {
+			fmt.Printf("✅ Berhasil login ke ERP! Selamat datang.\n")
+			os.Setenv("ERP_TOKEN", resp.AccessToken)
+			time.Sleep(1 * time.Second)
+			return
+		}
+		fmt.Printf("⚠️ Auto-login ERP gagal: %v\n", err)
+	}
+
+	for {
+		fmt.Println("\n🔐 SILAKAN LOGIN ERP SIDOMULYO:")
+		fmt.Print("👉 Email   : ")
+		if !scanner.Scan() {
+			os.Exit(1)
+		}
+		inputEmail := strings.TrimSpace(scanner.Text())
+
+		fmt.Print("👉 Password: ")
+		if !scanner.Scan() {
+			os.Exit(1)
+		}
+		inputPassword := strings.TrimSpace(scanner.Text())
+
+		if inputEmail == "" || inputPassword == "" {
+			fmt.Println("❌ Email dan password tidak boleh kosong!")
+			continue
+		}
+
+		fmt.Printf("🔄 Memverifikasi kredensial ke %s...\n", apiURL)
+		resp, err := loginToERP(apiURL, inputEmail, inputPassword)
+		if err != nil {
+			fmt.Printf("❌ Login gagal: %v\n", err)
+			continue
+		}
+
+		fmt.Printf("✅ Login berhasil! Selamat datang.\n")
+		os.Setenv("ERP_EMAIL", inputEmail)
+		os.Setenv("ERP_PASS", inputPassword)
+		os.Setenv("ERP_TOKEN", resp.AccessToken)
+
+		// Simpan kredensial baru ke .env
+		config := loadEnvMap()
+		config["BCA_USER"] = os.Getenv("BCA_USER")
+		config["BCA_PASS"] = os.Getenv("BCA_PASS")
+		config["ERP_API_URL"] = apiURL
+		config["ERP_EMAIL"] = inputEmail
+		config["ERP_PASS"] = inputPassword
+		_ = saveEnvMap(config)
+
+		time.Sleep(1 * time.Second)
+		break
+	}
 }
 
 func runSettingFlow(scanner *bufio.Scanner) {
@@ -245,7 +374,10 @@ func runSettingFlow(scanner *bufio.Scanner) {
 		pass = currentConfig["BCA_PASS"]
 	}
 	
-	err := saveEnv(user, pass)
+	currentConfig["BCA_USER"] = user
+	currentConfig["BCA_PASS"] = pass
+	
+	err := saveEnvMap(currentConfig)
 	if err != nil {
 		fmt.Printf("\n❌ Gagal menyimpan pengaturan: %v\n", err)
 	} else {
