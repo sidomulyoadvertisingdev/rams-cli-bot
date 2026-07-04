@@ -1,0 +1,6 @@
+.env
+rams
+bca-cli-bot
+debug_*.html
+debug_*.png
+*.log
