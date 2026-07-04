@@ -105,5 +105,15 @@ bca-cli-bot/
 
 ---
 
+## 🔮 Rencana Pengembangan ke Depan (Roadmap)
+Ini adalah **Versi Pertama (v1.0.0)** yang berfokus pada otomasi penarikan data mutasi dari KlikBCA. Rencana pengembangan selanjutnya meliputi:
+- **Integrasi ERP & POS**: Bot ini akan disambungkan ke sistem ERP dan Kasir (POS) perusahaan Anda.
+- **Otomasi Rekonsiliasi Nota**: Menghubungkan mutasi KlikBCA langsung untuk memeriksa kecocokan Nota Penjualan dengan pembayaran transfer dari customer.
+- **Pencocokan Otomatis Tanpa Manual**: Menghilangkan kebutuhan untuk memeriksa transaksi satu per satu secara manual. Sistem akan secara otomatis mendeteksi setiap nota yang sudah dibuat, memverifikasi nominal transfer masuk, dan menandai status nota secara real-time:
+  - **Cocok (Matched)**: Nota yang pembayarannya sudah terverifikasi masuk di mutasi bank.
+  - **Belum Cocok (Unmatched)**: Nota yang pembayarannya belum masuk atau belum sesuai nominalnya.
+
+---
+
 ## ⚠️ Disklaimer
 *Aplikasi ini dibuat murni untuk keperluan otomasi administrasi personal. Penulis tidak bertanggung jawab atas penyalahgunaan akun atau pemblokiran akses akibat penggunaan interval scheduler yang terlalu sering. Disarankan untuk menggunakan interval scheduler minimal 30 - 60 menit demi keamanan akun Anda.*
