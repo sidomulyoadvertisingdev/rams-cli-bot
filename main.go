@@ -291,7 +291,7 @@ func loginToERP(apiURL, email, password string) (*LoginResponse, error) {
 func authenticateERP(scanner *bufio.Scanner) {
 	apiURL := os.Getenv("ERP_API_URL")
 	if apiURL == "" {
-		apiURL = "http://erp.sidomulyo.tes/api"
+		apiURL = "http://erp.sidomulyo.test/api"
 		os.Setenv("ERP_API_URL", apiURL)
 	}
 
@@ -312,13 +312,23 @@ func authenticateERP(scanner *bufio.Scanner) {
 
 	for {
 		fmt.Println("\n🔐 SILAKAN LOGIN ERP SIDOMULYO:")
-		fmt.Print("👉 Email   : ")
+		fmt.Printf("👉 URL API ERP [%s]: ", apiURL)
+		if !scanner.Scan() {
+			os.Exit(1)
+		}
+		inputURL := strings.TrimSpace(scanner.Text())
+		if inputURL != "" {
+			apiURL = inputURL
+			os.Setenv("ERP_API_URL", apiURL)
+		}
+
+		fmt.Print("👉 Email       : ")
 		if !scanner.Scan() {
 			os.Exit(1)
 		}
 		inputEmail := strings.TrimSpace(scanner.Text())
 
-		fmt.Print("👉 Password: ")
+		fmt.Print("👉 Password    : ")
 		if !scanner.Scan() {
 			os.Exit(1)
 		}
@@ -374,8 +384,38 @@ func runSettingFlow(scanner *bufio.Scanner) {
 		pass = currentConfig["BCA_PASS"]
 	}
 	
+	fmt.Println("\n🛠️  PENGATURAN API ERP SIDOMULYO:")
+	
+	erpURL := currentConfig["ERP_API_URL"]
+	if erpURL == "" {
+		erpURL = "http://erp.sidomulyo.test/api"
+	}
+	fmt.Printf("3. Masukkan URL API ERP [%s]: ", erpURL)
+	scanner.Scan()
+	inputURL := strings.TrimSpace(scanner.Text())
+	if inputURL == "" {
+		inputURL = erpURL
+	}
+	
+	fmt.Printf("4. Masukkan Email ERP [%s]: ", currentConfig["ERP_EMAIL"])
+	scanner.Scan()
+	erpEmail := strings.TrimSpace(scanner.Text())
+	if erpEmail == "" {
+		erpEmail = currentConfig["ERP_EMAIL"]
+	}
+	
+	fmt.Printf("5. Masukkan Password ERP [%s]: ", currentConfig["ERP_PASS"])
+	scanner.Scan()
+	erpPass := strings.TrimSpace(scanner.Text())
+	if erpPass == "" {
+		erpPass = currentConfig["ERP_PASS"]
+	}
+	
 	currentConfig["BCA_USER"] = user
 	currentConfig["BCA_PASS"] = pass
+	currentConfig["ERP_API_URL"] = inputURL
+	currentConfig["ERP_EMAIL"] = erpEmail
+	currentConfig["ERP_PASS"] = erpPass
 	
 	err := saveEnvMap(currentConfig)
 	if err != nil {
@@ -384,6 +424,9 @@ func runSettingFlow(scanner *bufio.Scanner) {
 		fmt.Println("\n✅ Pengaturan kredensial berhasil disimpan ke file .env!")
 		os.Setenv("BCA_USER", user)
 		os.Setenv("BCA_PASS", pass)
+		os.Setenv("ERP_API_URL", inputURL)
+		os.Setenv("ERP_EMAIL", erpEmail)
+		os.Setenv("ERP_PASS", erpPass)
 	}
 }
 
