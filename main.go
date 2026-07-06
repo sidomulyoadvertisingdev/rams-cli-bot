@@ -2,7 +2,11 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,9 +14,17 @@ import (
 	"time"
 
 	"bca-cli-bot/bot"
+	"golang.org/x/term"
 )
 
 func getEnvFilePath() string {
+	if _, err := os.Stat(".env"); err == nil {
+		return ".env"
+	}
+	projectEnv := "/Users/sidomulyo/Projects-SM/bca-cli-bot/.env"
+	if _, err := os.Stat(projectEnv); err == nil {
+		return projectEnv
+	}
 	execPath, err := os.Executable()
 	if err == nil {
 		realPath, err := filepath.EvalSymlinks(execPath)
@@ -137,6 +149,23 @@ func main() {
 	loadEnvFile()
 
 	scanner := bufio.NewScanner(os.Stdin)
+
+	// Jalankan kedipan saat masuk menu utama
+	playIntroBlinkAnimation()
+
+	var email, password string
+	var err error
+	for {
+		email, password, err = promptERPLogin(scanner)
+		if err != nil {
+			fmt.Printf("❌ Autentikasi ERP Gagal: %v. Silakan coba lagi.\n", err)
+			continue
+		}
+		break
+	}
+	fmt.Println("\n🔒 Login ERP Berhasil! Akses diberikan.")
+	time.Sleep(1 * time.Second)
+
 	for {
 		// Jalankan kedipan saat masuk menu utama, setelah selesai baru minta input
 		playIntroBlinkAnimation()
@@ -150,11 +179,11 @@ func main() {
 
 		switch strings.ToLower(input) {
 		case "1", "/run":
-			runBotFlow(scanner)
+			runBotFlow(scanner, email, password)
 		case "2", "/setting":
 			runSettingFlow(scanner)
 		case "3", "/scheduler":
-			runSchedulerFlow(scanner)
+			runSchedulerFlow(scanner, email, password)
 		case "4", "/exit", "exit":
 			fmt.Println("\n👋 Terima kasih telah menggunakan Boot Rams. Sampai jumpa!")
 			return
@@ -191,10 +220,7 @@ func loadEnvFile() {
 }
 
 func loadEnvMap() map[string]string {
-	config := map[string]string{
-		"BCA_USER": "",
-		"BCA_PASS": "",
-	}
+	config := make(map[string]string)
 	envPath := getEnvFilePath()
 	file, err := os.Open(envPath)
 	if err != nil {
@@ -213,17 +239,39 @@ func loadEnvMap() map[string]string {
 			key := strings.TrimSpace(parts[0])
 			val := strings.TrimSpace(parts[1])
 			val = strings.Trim(val, `"'`)
-			if key == "BCA_USER" || key == "BCA_PASS" {
-				config[key] = val
-			}
+			config[key] = val
 		}
 	}
 	return config
 }
 
 func saveEnv(user, pass string) error {
-	content := fmt.Sprintf("BCA_USER=%s\nBCA_PASS=%s\n", user, pass)
-	return os.WriteFile(getEnvFilePath(), []byte(content), 0644)
+	config := loadEnvMap()
+	config["BCA_USER"] = user
+	config["BCA_PASS"] = pass
+
+	var lines []string
+	keysOrder := []string{"BCA_USER", "BCA_PASS", "ERP_API_URL", "BCA_BOT_TOKEN", "ERP_EMAIL", "ERP_PASSWORD"}
+	for _, k := range keysOrder {
+		if val, exists := config[k]; exists {
+			lines = append(lines, fmt.Sprintf("%s=%s", k, val))
+		}
+	}
+
+	for k, val := range config {
+		isDefaultKey := false
+		for _, dk := range keysOrder {
+			if k == dk {
+				isDefaultKey = true
+				break
+			}
+		}
+		if !isDefaultKey {
+			lines = append(lines, fmt.Sprintf("%s=%s", k, val))
+		}
+	}
+
+	return os.WriteFile(getEnvFilePath(), []byte(strings.Join(lines, "\n")+"\n"), 0644)
 }
 
 func runSettingFlow(scanner *bufio.Scanner) {
@@ -255,7 +303,7 @@ func runSettingFlow(scanner *bufio.Scanner) {
 	}
 }
 
-func runBotFlow(scanner *bufio.Scanner) {
+func runBotFlow(scanner *bufio.Scanner, email, password string) {
 	fmt.Println("\n🚀 Memulai Bot Mutasi Rekening KlikBCA...")
 	
 	user := os.Getenv("BCA_USER")
@@ -278,20 +326,28 @@ func runBotFlow(scanner *bufio.Scanner) {
 		return
 	}
 
+	fmt.Println("\n🔑 Menghubungkan ke backend ERP...")
+	accessToken, err := loginToERP(email, password)
+	if err != nil {
+		fmt.Printf("❌ Gagal login ke ERP: %v\n", err)
+		return
+	}
+
 	fmt.Println("\n👤 Menjalankan bot untuk User ID:", user)
 	fmt.Println("⏳ Mohon tunggu, bot sedang membuka browser...")
 
 	defaultStart, defaultEnd := bot.DefaultDateRange()
 	
-	_, err := bot.RunBCA(user, pass, defaultStart, defaultEnd)
+	mutations, err := bot.RunBCA(user, pass, defaultStart, defaultEnd)
 	if err != nil {
 		fmt.Printf("\n❌ Terjadi kesalahan saat menjalankan bot: %v\n", err)
 	} else {
 		fmt.Println("\n✅ Penarikan data mutasi selesai!")
+		sendMutationsToBackend(mutations, accessToken)
 	}
 }
 
-func runSchedulerFlow(scanner *bufio.Scanner) {
+func runSchedulerFlow(scanner *bufio.Scanner, email, password string) {
 	fmt.Println("\n⏰ PENGATURAN PENJADWALAN OTOMATIS:")
 	fmt.Print("Masukkan interval waktu bot berjalan otomatis (dalam menit, contoh: 30): ")
 	scanner.Scan()
@@ -317,7 +373,7 @@ func runSchedulerFlow(scanner *bufio.Scanner) {
 
 	// Jalankan pertama kali saat diaktifkan
 	fmt.Printf("\n[ %s ] Menjalankan bot pertama kali...\n", time.Now().Format("15:04:05"))
-	triggerBotExecution()
+	triggerBotExecution(email, password)
 
 	// Channel untuk menangkap input stop
 	stopChan := make(chan bool, 1)
@@ -339,7 +395,7 @@ func runSchedulerFlow(scanner *bufio.Scanner) {
 		select {
 		case <-ticker.C:
 			fmt.Printf("\n[ %s ] Menjalankan bot terjadwal otomatis...\n", time.Now().Format("15:04:05"))
-			triggerBotExecution()
+			triggerBotExecution(email, password)
 		case <-stopChan:
 			fmt.Println("\n🛑 Mode penjadwalan otomatis dinonaktifkan.")
 			return
@@ -347,7 +403,7 @@ func runSchedulerFlow(scanner *bufio.Scanner) {
 	}
 }
 
-func triggerBotExecution() {
+func triggerBotExecution(email, password string) {
 	user := os.Getenv("BCA_USER")
 	pass := os.Getenv("BCA_PASS")
 	if user == "" || pass == "" {
@@ -357,16 +413,188 @@ func triggerBotExecution() {
 	}
 
 	if user == "" || pass == "" {
-		fmt.Println("❌ Gagal: Kredensial login belum diatur.")
+		fmt.Println("❌ Gagal: Kredensial login KlikBCA belum diatur.")
+		return
+	}
+
+	fmt.Println("🔑 Menghubungkan ke backend ERP...")
+	accessToken, err := loginToERP(email, password)
+	if err != nil {
+		fmt.Printf("❌ Gagal login ke ERP saat jadwal otomatis: %v\n", err)
 		return
 	}
 
 	defaultStart, defaultEnd := bot.DefaultDateRange()
-	_, err := bot.RunBCA(user, pass, defaultStart, defaultEnd)
+	mutations, err := bot.RunBCA(user, pass, defaultStart, defaultEnd)
 	if err != nil {
 		fmt.Printf("❌ Gagal menjalankan bot terjadwal: %v\n", err)
 	} else {
 		fmt.Println("✅ Penjadwalan bot berhasil menyelesaikan tugas.")
+		sendMutationsToBackend(mutations, accessToken)
 	}
 	fmt.Printf("⏳ Menunggu jadwal berikutnya...\n")
+}
+
+func sendMutationsToBackend(mutations []bot.Mutation, accessToken string) {
+	apiUrl := os.Getenv("ERP_API_URL")
+	botToken := os.Getenv("BCA_BOT_TOKEN")
+
+	if apiUrl == "" {
+		fmt.Println("⚠️  Peringatan: ERP_API_URL belum diatur di .env. Data mutasi tidak dikirim ke backend.")
+		return
+	}
+
+	if botToken == "" {
+		fmt.Println("⚠️  Peringatan: BCA_BOT_TOKEN belum diatur di .env. Data mutasi tidak dikirim ke backend.")
+		return
+	}
+
+	type MutationPayload struct {
+		Date        string `json:"date"`
+		Description string `json:"description"`
+		Amount      string `json:"amount"`
+		Type        string `json:"type"`
+	}
+
+	type RequestPayload struct {
+		Mutations []MutationPayload `json:"mutations"`
+	}
+
+	var reqMutations []MutationPayload
+	for _, m := range mutations {
+		reqMutations = append(reqMutations, MutationPayload{
+			Date:        m.Date,
+			Description: m.Description,
+			Amount:      m.Amount,
+			Type:        m.Type,
+		})
+	}
+
+	payload := RequestPayload{Mutations: reqMutations}
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		fmt.Printf("❌ Gagal membuat payload JSON: %v\n", err)
+		return
+	}
+
+	req, err := http.NewRequest("POST", apiUrl, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		fmt.Printf("❌ Gagal membuat request http: %v\n", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Bot-Token", botToken)
+	req.Header.Set("Authorization", "Bearer "+accessToken)
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("❌ Gagal mengirim mutasi ke backend: %v\n", err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusCreated {
+		fmt.Println("✅ Berhasil mengirimkan data mutasi ke backend ERP!")
+	} else {
+		fmt.Printf("❌ Backend ERP mengembalikan status error: %s\n", resp.Status)
+	}
+}
+
+type LoginResponse struct {
+	Success     bool   `json:"success"`
+	AccessToken string `json:"access_token"`
+	Message     string `json:"message"`
+}
+
+func loginToERP(email, password string) (string, error) {
+	config := loadEnvMap()
+	apiUrl := config["ERP_API_URL"]
+	if apiUrl == "" {
+		apiUrl = "http://127.0.0.1/api/pos/bank-mutations"
+	}
+
+	loginUrl := strings.Replace(apiUrl, "/api/pos/bank-mutations", "/api/auth/login", 1)
+
+	payload := map[string]string{
+		"email":    email,
+		"password": password,
+	}
+	jsonBytes, err := json.Marshal(payload)
+	if err != nil {
+		return "", fmt.Errorf("gagal marshal login payload: %v", err)
+	}
+
+	req, err := http.NewRequest("POST", loginUrl, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		return "", fmt.Errorf("gagal membuat request login: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("gagal menghubungi backend ERP: %v", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("gagal membaca response login: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		var errResp struct {
+			Message string `json:"message"`
+		}
+		json.Unmarshal(bodyBytes, &errResp)
+		msg := errResp.Message
+		if msg == "" {
+			msg = resp.Status
+		}
+		return "", fmt.Errorf("login ditolak oleh ERP: %s", msg)
+	}
+
+	var loginResp LoginResponse
+	err = json.Unmarshal(bodyBytes, &loginResp)
+	if err != nil {
+		return "", fmt.Errorf("gagal parsing response login: %v", err)
+	}
+
+	if !loginResp.Success || loginResp.AccessToken == "" {
+		return "", fmt.Errorf("login gagal: %s", loginResp.Message)
+	}
+
+	return loginResp.AccessToken, nil
+}
+
+func promptERPLogin(scanner *bufio.Scanner) (string, string, error) {
+	fmt.Println("\n==============================================")
+	fmt.Println("🔑   SILAKAN LOGIN KE ERP SIDOMULYO   🔑")
+	fmt.Println("==============================================")
+	fmt.Print("Masukkan Email ERP   : ")
+	if !scanner.Scan() {
+		return "", "", fmt.Errorf("batal")
+	}
+	email := strings.TrimSpace(scanner.Text())
+
+	fmt.Print("Masukkan Password ERP: ")
+	bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		return "", "", fmt.Errorf("gagal membaca password: %v", err)
+	}
+	fmt.Println() // Print newline after user presses Enter
+	password := strings.TrimSpace(string(bytePassword))
+
+	if email == "" || password == "" {
+		return "", "", fmt.Errorf("email dan password tidak boleh kosong")
+	}
+
+	_, err = loginToERP(email, password)
+	if err != nil {
+		return "", "", err
+	}
+
+	return email, password, nil
 }
